@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import Showroom3DSection from "@/components/3d/Showroom3DSection";
 import BrandApproach from "@/components/BrandApproach";
 import BedroomConfigurator, { ConfigState } from "@/components/BedroomConfigurator";
 import CollectionGrid from "@/components/CollectionGrid";
@@ -25,6 +26,9 @@ export default function Home() {
 
       {/* Cinematic Hero Section */}
       <HeroSection />
+
+      {/* Interactive 3D WebGL Showroom Section */}
+      <Showroom3DSection />
 
       {/* Philosophy & Craftsmanship Section */}
       <section id="explore">

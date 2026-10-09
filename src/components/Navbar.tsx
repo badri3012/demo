@@ -17,6 +17,7 @@ export default function Navbar() {
   }, []);
 
   const navLinks = [
+    { name: "3D Showroom", href: "#showroom3d" },
     { name: "Explore", href: "#explore" },
     { name: "Collections", href: "#collections" },
     { name: "Personalise", href: "#personalise" },
