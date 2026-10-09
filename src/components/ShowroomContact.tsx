@@ -67,11 +67,10 @@ export default function ShowroomContact() {
           <div className="lg:col-span-5 rounded-2xl overflow-hidden h-72 sm:h-96 relative border border-[#D8D0C5]">
             <img
               src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1000&auto=format&fit=crop"
-              alt="HausBedroom Singapore Showroom Gallery — 9 Kaki Bukit Road 1 Eunos Technolink"
+              alt="HausBedroom Singapore Showroom Gallery"
               title="HausBedroom Singapore Showroom Gallery"
               loading="lazy"
               decoding="async"
-              itemProp="image"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />

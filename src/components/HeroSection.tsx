@@ -23,11 +23,10 @@ export default function HeroSection() {
       >
         <img
           src="https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=2000&auto=format&fit=crop"
-          alt="Luxury Bedroom Architectural Interior Singapore — HausBedroom Sanctuary"
-          title="HausBedroom Singapore Sanctuary Architectural Interior"
+          alt="HausBedroom Sanctuary"
+          title="HausBedroom Sanctuary"
           loading="eager"
           decoding="async"
-          itemProp="image"
           className="w-full h-full object-cover object-center filter brightness-[0.75] contrast-[1.05]"
         />
         {/* Layered Gradient Overlays for Cinematic Depth */}

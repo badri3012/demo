@@ -168,11 +168,10 @@ export default function CollectionGrid() {
               <div className="relative h-72 sm:h-80 overflow-hidden bg-[#242421]">
                 <img
                   src={item.image}
-                  alt={`${item.title} — HausBedroom Singapore ${item.category}`}
-                  title={`HausBedroom ${item.title}`}
+                  alt={item.title}
+                  title={item.title}
                   loading="lazy"
                   decoding="async"
-                  itemProp="image"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 filter brightness-95"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
@@ -243,11 +242,10 @@ export default function CollectionGrid() {
                 <div className="md:col-span-6 rounded-2xl overflow-hidden h-64 sm:h-80 relative border border-[#D8D0C5]">
                   <img
                     src={activeItem.image}
-                    alt={`${activeItem.title} — Architectural Design Specification`}
-                    title={`HausBedroom ${activeItem.title}`}
+                    alt={activeItem.title}
+                    title={activeItem.title}
                     loading="lazy"
                     decoding="async"
-                    itemProp="image"
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute top-4 left-4">

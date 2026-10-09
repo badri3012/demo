@@ -50,7 +50,7 @@ export const STYLES = [
     id: "warm-natural",
     title: "Warm Natural",
     tagline: "Organic wood fluting, linen textures & warm inviting sanctuary tones.",
-    image: "https://images.unsplash.com/photo-1540518614846-7ede433c517a?q=80&w=1200&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=1200&auto=format&fit=crop",
     features: ["Natural oak fluted panels", "Breathable fabric upholstery", "Integrated planter ledges"],
   },
   {
@@ -272,14 +272,13 @@ export default function BedroomConfigurator({ onComplete }: BedroomConfiguratorP
                             : "border-white/10 hover:border-white/30"
                         }`}
                       >
-                        <div className="h-48 sm:h-56 relative overflow-hidden">
+                        <div className="h-48 sm:h-56 relative overflow-hidden bg-[#1C1C19]">
                           <img
                             src={style.image}
-                            alt={`${style.title} — HausBedroom Singapore Architectural Custom Bedroom`}
-                            title={`HausBedroom ${style.title} Custom Bedroom Design`}
+                            alt={style.title}
+                            title={style.title}
                             loading="lazy"
                             decoding="async"
-                            itemProp="image"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
@@ -570,14 +569,13 @@ export default function BedroomConfigurator({ onComplete }: BedroomConfiguratorP
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
                   {/* Dynamic Inspiration Image */}
-                  <div className="lg:col-span-7 rounded-2xl overflow-hidden relative min-h-[320px] sm:min-h-[400px] border border-white/15">
+                  <div className="lg:col-span-7 rounded-2xl overflow-hidden relative min-h-[320px] sm:min-h-[400px] border border-white/15 bg-[#1C1C19]">
                     <img
                       src={getSelectedStyleObj().image}
-                      alt={`${getSelectedStyleObj().title} — Custom ${getSelectedSizeObj().title} Sanctuary`}
-                      title={`HausBedroom ${getSelectedStyleObj().title} Sanctuary Concept`}
+                      alt={getSelectedStyleObj().title}
+                      title={getSelectedStyleObj().title}
                       loading="lazy"
                       decoding="async"
-                      itemProp="image"
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
