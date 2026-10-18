@@ -51,7 +51,7 @@ export const ScalabilityRoadmap: React.FC = () => {
       status: 'Factory Engineering',
       active: false,
       icon: Cpu,
-      location: 'Peenya Unit 01 & Dobbspet Unit 02',
+      location: 'Bengaluru Manufacturing Facilities',
       description:
         'Connect the web configuration engine directly to factory ERP and 5-axis CNC machining centers for automatic parametric cut-list generation.',
       deliverables: [

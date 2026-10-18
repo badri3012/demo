@@ -153,7 +153,7 @@ export function generateManufacturingSpec(config: ConfigurationState): Manufactu
     flatPackBoxes,
     packagingVolumeM3,
     bomItems,
-    ruleVersion: 'v2.4.1 (Flexispace Engineering Studio)',
-    pricingRuleVersion: 'PR-2026-Q4-BENGALURU',
+    ruleVersion: 'Illustrative Spec Model (Concept Demo)',
+    pricingRuleVersion: 'Illustrative Pricing Model (Bengaluru)',
   };
 }

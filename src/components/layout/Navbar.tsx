@@ -216,7 +216,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       ERP Lifecycle
                     </span>
                     <span className="text-[10px] text-[#252522]/60 block leading-tight">
-                      Peenya Unit 01 order tracking
+                      Simulated order lifecycle
                     </span>
                   </div>
                 </button>

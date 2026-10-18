@@ -194,7 +194,7 @@ export function App() {
                 <span className="font-serif text-2xl font-bold text-[#252522] block">
                   0.1 mm
                 </span>
-                <span className="text-[#252522]/60 mt-0.5 block">Automated CNC precision</span>
+                <span className="text-[#252522]/60 mt-0.5 block">Engineered joinery fit</span>
               </div>
               <div>
                 <span className="font-serif text-2xl font-bold text-[#252522] block">

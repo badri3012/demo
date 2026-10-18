@@ -14,7 +14,7 @@ export const FLAGSHIP_PRODUCT = {
   collection: 'Master Bedroom Series',
   tagline: 'Precision-crafted architectural platform bed with optional concealed storage',
   description:
-    'A minimalist centerpiece engineered for modern living. Features tapered solid wood-style legs with brushed brass accents, precision mitred corners, and an optional whisper-quiet dual under-bed drawer module. Every component is cut to 0.1mm tolerance on automated CNC machining centers.',
+    'A minimalist centerpiece engineered for modern living. Features tapered solid wood-style legs with brushed brass accents, precision mitred corners, and an optional whisper-quiet dual under-bed drawer module designed for precision flat-pack manufacturing.',
   origin: 'Designed in Bengaluru • Manufactured in Karnataka',
 };
 

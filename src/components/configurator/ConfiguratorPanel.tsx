@@ -568,7 +568,7 @@ export const ConfiguratorPanel: React.FC<ConfiguratorPanelProps> = ({
                 <Cpu className="w-4 h-4 text-[#A58A63] shrink-0" />
                 <div>
                   <span className="text-xs font-bold text-[#1C1D1F] block">Cut List & BOM</span>
-                  <span className="text-[10px] text-[#252522]/60">10 CNC Parts</span>
+                  <span className="text-[10px] text-[#252522]/60">Structured Spec</span>
                 </div>
               </button>
 
@@ -579,7 +579,7 @@ export const ConfiguratorPanel: React.FC<ConfiguratorPanelProps> = ({
                 <Box className="w-4 h-4 text-[#A58A63] shrink-0" />
                 <div>
                   <span className="text-xs font-bold text-[#1C1D1F] block">ERP Lifecycle</span>
-                  <span className="text-[10px] text-[#252522]/60">Peenya Unit 01</span>
+                  <span className="text-[10px] text-[#252522]/60">Simulated Flow</span>
                 </div>
               </button>
             </div>

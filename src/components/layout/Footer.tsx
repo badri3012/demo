@@ -133,10 +133,10 @@ export const Footer: React.FC<FooterProps> = ({ onReplayIntro }) => {
           <div>
             © {new Date().getFullYear()} Flexispace Interiors Design Studio. All rights reserved.
           </div>
-          <div className="flex items-center space-x-4">
-            <span>Bengaluru • Peenya • Dobbspet</span>
+          <div className="flex items-center space-x-3 text-white/60">
+            <span>Bengaluru, Karnataka</span>
             <span>•</span>
-            <span className="text-white/70">Designed by BlazeByte Studio</span>
+            <span className="text-white/80 font-medium">Demo provided by BlazeByte Studio</span>
           </div>
         </div>
       </div>

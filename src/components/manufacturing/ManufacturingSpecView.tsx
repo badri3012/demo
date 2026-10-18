@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { ConfigurationState } from '../../types/configurator';
 import { generateManufacturingSpec } from '../../utils/bomGenerator';
 import {
@@ -9,8 +9,8 @@ import {
   ShieldAlert,
   X,
   Package,
-  Wrench,
   Download,
+  Info,
 } from 'lucide-react';
 
 interface ManufacturingSpecViewProps {
@@ -24,6 +24,17 @@ export const ManufacturingSpecView: React.FC<ManufacturingSpecViewProps> = ({
   onClose,
   config,
 }) => {
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const spec = generateManufacturingSpec(config);
@@ -39,62 +50,74 @@ export const ManufacturingSpecView: React.FC<ManufacturingSpecViewProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#FFFEFC] rounded-2xl border border-[#DDD8CF] shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="p-6 border-b border-[#DDD8CF] bg-[#F7F5F0] flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-[#252522] text-[#A58A63] flex items-center justify-center">
-              <Cpu className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-[#FFFEFC] rounded-2xl border border-[#DDD8CF] shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Header - Mobile & Desktop Optimized */}
+        <div className="p-4 sm:p-6 border-b border-[#DDD8CF] bg-[#F7F5F0] shrink-0">
+          {/* Top metadata row with accessible Close button */}
+          <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-[#ECE8E1] text-[#252522] border border-[#DDD8CF]">
+                Technical Preview
+              </span>
+              <span className="text-[11px] text-[#252522]/60 font-medium hidden sm:inline">
+                • Illustrative Manufacturing Specification
+              </span>
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                  CAD / CAM Interface
-                </span>
-                <span className="text-xs text-[#252522]/50">• Digital Manufacturing Spec</span>
-              </div>
-              <h2 className="font-serif text-xl font-bold text-[#252522] mt-0.5">
-                Manufacturing Specification & Exploded BOM Preview
-              </h2>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={exportJSON}
-              className="px-3.5 py-1.5 rounded-lg border border-[#DDD8CF] bg-white hover:border-[#A58A63] text-xs font-semibold text-[#252522] transition flex items-center space-x-1.5"
-            >
-              <Download className="w-3.5 h-3.5 text-[#A58A63]" />
-              <span>Export JSON Spec</span>
-            </button>
             <button
               onClick={onClose}
-              className="p-2 text-[#252522]/50 hover:text-[#252522] rounded-lg transition"
+              aria-label="Close Manufacturing Specification"
+              className="p-1.5 sm:p-2 text-[#252522]/60 hover:text-[#252522] hover:bg-black/5 rounded-lg transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Title and Action row */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start sm:items-center space-x-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#252522] text-[#A58A63] flex items-center justify-center shrink-0">
+                <Cpu className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-serif text-lg sm:text-xl font-bold text-[#252522] leading-tight">
+                  Manufacturing Specification & BOM Preview
+                </h2>
+                <p className="text-[11px] sm:text-xs text-[#252522]/60 mt-0.5">
+                  Parametric Bill of Materials derived from active 3D configuration
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={exportJSON}
+              className="self-start sm:self-auto px-3.5 py-2 rounded-lg border border-[#DDD8CF] bg-white hover:border-[#A58A63] hover:bg-[#F7F5F0] text-xs font-semibold text-[#252522] transition-colors flex items-center space-x-2 shadow-2xs cursor-pointer shrink-0"
+            >
+              <Download className="w-3.5 h-3.5 text-[#A58A63]" />
+              <span>Export JSON Spec</span>
+            </button>
+          </div>
         </div>
 
-        {/* Content Body */}
-        <div className="p-6 space-y-6 overflow-y-auto">
+        {/* Content Body - Natural Vertical Scrolling */}
+        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto overscroll-contain flex-1">
           {/* Transparent Factory Warning */}
           <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs flex items-start space-x-2.5">
             <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-            <div>
-              <strong className="font-bold">Illustrative Bill of Materials — Not Factory Approved:</strong> This data structure demonstrates how live customer 3D customizations generate structured downstream inputs for CNC nesting routers, automated edgebanders, and packaging queues. Actual CNC G-code and factory toolpaths require formal factory tooling discovery.
+            <div className="leading-relaxed">
+              <strong className="font-bold block">Illustrative manufacturing specification. Not connected to live factory systems.</strong>
+              This data structure demonstrates how live customer 3D customizations generate structured downstream inputs for CNC nesting, edgeband planning, and flat-pack kitting. Production toolpaths and actual machine configurations represent Phase 2 factory discovery deliverables.
             </div>
           </div>
 
-          {/* Configuration Metadata Card */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#F7F5F0] p-4 rounded-xl border border-[#DDD8CF] text-xs">
+          {/* Configuration Metadata Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 bg-[#F7F5F0] p-3.5 sm:p-4 rounded-xl border border-[#DDD8CF] text-xs">
             <div>
               <span className="text-[10px] text-[#252522]/50 uppercase font-bold block">Config Reference</span>
-              <span className="font-mono font-bold text-[#252522] block mt-0.5">{spec.configId}</span>
+              <span className="font-mono font-bold text-[#252522] block mt-0.5 truncate">{spec.configId}</span>
             </div>
             <div>
-              <span className="text-[10px] text-[#252522]/50 uppercase font-bold block">Dimensions (W × L × H)</span>
+              <span className="text-[10px] text-[#252522]/50 uppercase font-bold block">Finished Dimensions</span>
               <span className="font-bold text-[#252522] block mt-0.5">
                 {spec.dimensionsMM.width} × {spec.dimensionsMM.length} × {spec.dimensionsMM.height} mm
               </span>
@@ -104,54 +127,103 @@ export const ManufacturingSpecView: React.FC<ManufacturingSpecViewProps> = ({
               <span className="font-bold text-[#252522] block mt-0.5">~{spec.estimatedWeightKg} kg ({spec.flatPackBoxes} Boxes)</span>
             </div>
             <div>
-              <span className="text-[10px] text-[#252522]/50 uppercase font-bold block">Rule Version</span>
-              <span className="font-mono text-emerald-800 font-semibold block mt-0.5">{spec.ruleVersion}</span>
+              <span className="text-[10px] text-[#252522]/50 uppercase font-bold block">Specification Model</span>
+              <span className="font-semibold text-emerald-800 block mt-0.5">Illustrative Model</span>
             </div>
           </div>
 
-          {/* Exploded Bill of Materials Table */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-serif text-lg font-bold text-[#252522]">
-                Exploded Component Routing & Cut List
-              </h3>
-              <span className="text-xs text-[#252522]/60 font-mono">
-                {spec.bomItems.length} Structured Line Items
-              </span>
-            </div>
+          {/* BOM Section Header */}
+          <div className="flex items-center justify-between pt-1">
+            <h3 className="font-serif text-base sm:text-lg font-bold text-[#252522]">
+              Component Routing & Cut List (Illustrative BOM)
+            </h3>
+            <span className="text-xs text-[#252522]/60 font-mono bg-[#ECE8E1] px-2.5 py-0.5 rounded-full">
+              {spec.bomItems.length} Components
+            </span>
+          </div>
 
-            <div className="border border-[#DDD8CF] rounded-xl overflow-hidden">
-              <table className="w-full text-xs text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#ECE8E1] border-b border-[#DDD8CF] text-[#252522]">
-                    <th className="p-3 font-bold">Part No.</th>
-                    <th className="p-3 font-bold">Component Name</th>
-                    <th className="p-3 font-bold text-center">Qty</th>
-                    <th className="p-3 font-bold">Finished Dimensions</th>
-                    <th className="p-3 font-bold">Substrate Material</th>
-                    <th className="p-3 font-bold">Edge Finish</th>
-                    <th className="p-3 font-bold">CNC Routing Code</th>
+          {/* 1. DESKTOP VIEW: Structured Clean Table */}
+          <div className="hidden md:block border border-[#DDD8CF] rounded-xl overflow-hidden">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr className="bg-[#ECE8E1] border-b border-[#DDD8CF] text-[#252522]">
+                  <th className="p-3 font-bold">Part No.</th>
+                  <th className="p-3 font-bold">Component Name</th>
+                  <th className="p-3 font-bold text-center">Qty</th>
+                  <th className="p-3 font-bold">Finished Dimensions</th>
+                  <th className="p-3 font-bold">Substrate Material</th>
+                  <th className="p-3 font-bold">Edge Finish</th>
+                  <th className="p-3 font-bold">Routing Code</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#DDD8CF] bg-white">
+                {spec.bomItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-[#F7F5F0]/60 transition-colors">
+                    <td className="p-3 font-mono font-bold text-[#A58A63]">{item.id}</td>
+                    <td className="p-3 font-medium text-[#252522]">{item.partName}</td>
+                    <td className="p-3 text-center font-bold text-[#252522]">{item.quantity}</td>
+                    <td className="p-3 font-mono text-[#252522]/80">{item.dimensions}</td>
+                    <td className="p-3 text-[#252522]/80">{item.material}</td>
+                    <td className="p-3 text-[#252522]/70">{item.edgeband}</td>
+                    <td className="p-3">
+                      <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-[#252522]/5 text-[#252522] font-semibold border border-[#DDD8CF]">
+                        {item.routingCode}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-[#DDD8CF] bg-white">
-                  {spec.bomItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-[#F7F5F0]/60 transition">
-                      <td className="p-3 font-mono font-bold text-[#A58A63]">{item.id}</td>
-                      <td className="p-3 font-medium text-[#252522]">{item.partName}</td>
-                      <td className="p-3 text-center font-bold text-[#252522]">{item.quantity}</td>
-                      <td className="p-3 font-mono text-[#252522]/80">{item.dimensions}</td>
-                      <td className="p-3 text-[#252522]/80">{item.material}</td>
-                      <td className="p-3 text-[#252522]/70">{item.edgeband}</td>
-                      <td className="p-3">
-                        <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-[#252522]/5 text-[#252522] font-semibold border border-[#DDD8CF]">
-                          {item.routingCode}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 2. MOBILE VIEW: Dedicated Vertical Specification Cards (Zero Horizontal Overflow) */}
+          <div className="block md:hidden space-y-3">
+            {spec.bomItems.map((item) => (
+              <div
+                key={item.id}
+                className="p-3.5 bg-white rounded-xl border border-[#DDD8CF] shadow-xs space-y-2.5"
+              >
+                <div className="flex items-start justify-between gap-2 border-b border-[#DDD8CF]/50 pb-2">
+                  <div className="space-y-0.5">
+                    <span className="font-mono text-[11px] font-bold text-[#A58A63] bg-[#F7F5F0] px-2 py-0.5 rounded border border-[#DDD8CF] inline-block mr-1.5">
+                      {item.id}
+                    </span>
+                    <span className="font-semibold text-xs text-[#252522]">
+                      {item.partName}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold text-[#252522] bg-[#ECE8E1] px-2.5 py-0.5 rounded-full shrink-0">
+                    Qty: {item.quantity}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="text-[#252522]/50 text-[10px] uppercase font-bold block">Dimensions</span>
+                    <span className="font-mono font-medium text-[#252522] break-words">{item.dimensions}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#252522]/50 text-[10px] uppercase font-bold block">Substrate</span>
+                    <span className="font-medium text-[#252522] break-words">{item.material}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[#252522]/50 text-[10px] uppercase font-bold block">Surface Finish</span>
+                    <span className="text-[#252522]/80 break-words">{item.finish}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[#252522]/50 text-[10px] uppercase font-bold block">Edge Finish</span>
+                    <span className="text-[#252522]/80 break-words">{item.edgeband}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#DDD8CF]/40 flex items-center justify-between text-[10px]">
+                  <span className="text-[#252522]/50 uppercase font-bold">Process Code</span>
+                  <span className="font-mono bg-[#252522]/5 px-2 py-0.5 rounded border border-[#DDD8CF] text-[#252522] font-semibold">
+                    {item.routingCode}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Packaging & Logistics Box Kitting */}
@@ -189,13 +261,13 @@ export const ManufacturingSpecView: React.FC<ManufacturingSpecViewProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[#DDD8CF] bg-[#F7F5F0] flex justify-between items-center">
-          <span className="text-[11px] text-[#252522]/60">
-            Exported to Flexispace Factory ERP Schema v2.4 (Peenya Unit 01)
+        <div className="p-3.5 sm:p-4 border-t border-[#DDD8CF] bg-[#F7F5F0] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+          <span className="text-[11px] text-[#252522]/60 text-center sm:text-left">
+            Illustrative manufacturing specification. Not connected to live factory systems.
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#252522] text-white hover:bg-[#A58A63] transition"
+            className="w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-semibold bg-[#252522] text-white hover:bg-[#A58A63] transition-colors cursor-pointer"
           >
             Close Specification
           </button>

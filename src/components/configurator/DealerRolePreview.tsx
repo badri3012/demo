@@ -27,10 +27,20 @@ export const DealerRolePreview: React.FC<DealerRolePreviewProps> = ({
   pricing,
   config,
 }) => {
-  if (!isOpen) return null;
-
   const [activeRole, setActiveRole] = useState<'dealer' | 'public'>('dealer');
   const [marginAdjustment, setMarginAdjustment] = useState<number>(30); // 30% standard default
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
 
   // Calculate dynamic dealer metrics based on simulated discount slider
   const simulatedDealerCost = Math.round(pricing.totalMRP * (1 - marginAdjustment / 100));

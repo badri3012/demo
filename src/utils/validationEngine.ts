@@ -35,7 +35,7 @@ export function validateConfiguration(
       code: 'WARN_SHELF_ACRYLIC_JOINT',
       title: 'Machining Advisory: Integrated Shelf Mitres',
       description:
-        'The Floating Horizon Ledge features 45° mitred edge joinery. High-gloss acrylic edge-gluing requires specialized PUR laser profiling at Factory Unit 01 to prevent micro-chipping during CNC routing.',
+        'The Floating Horizon Ledge features 45° mitred edge joinery. High-gloss acrylic edge-gluing requires specialized PUR laser profiling to prevent micro-chipping during edge preparation.',
     });
   }
 
@@ -46,7 +46,7 @@ export function validateConfiguration(
       code: 'INFO_ECO_DRAWER_BRACKET',
       title: 'Structural Reinforcement Specification',
       description:
-        'When EcoModular core is paired with under-bed storage drawers, automated CNC nesting adds steel structural corner gussets to guarantee 50kg dynamic pull ratings.',
+        'When EcoModular core is paired with under-bed storage drawers, production specifications include steel structural corner gussets to support 50kg dynamic pull ratings.',
     });
   }
 

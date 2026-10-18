@@ -48,11 +48,11 @@ export const BusinessEcosystemSection: React.FC = () => {
     },
     {
       num: '05',
-      title: 'Automated Factory CNC Production',
+      title: 'Precision Factory Production',
       role: 'Manufacturing Hub',
       icon: Factory,
       description:
-        'Automated 5-axis nesting routers in Peenya (Unit 01) machine the panels to 0.1mm tolerance, apply zero-joint PUR edgebanding, and pack into honeycomb cartons.',
+        'Parametric specifications guide panel sizing, surface finishing, zero-joint edgebanding, and multi-wall protective flat-pack kitting at the Bengaluru manufacturing facility.',
     },
     {
       num: '06',
