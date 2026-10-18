@@ -8,6 +8,7 @@ import {
   Cpu,
   Factory,
   Compass,
+  RotateCcw,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -55,19 +56,26 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-[#F7F5F0]/95 backdrop-blur-md border-b border-[#DDD8CF]/80 transition-all duration-300">
-      {/* 02. BRANDING STRIP (Subtle Architectural Top Bar) */}
-      <div className="bg-[#1C1D1F] text-[#E8E6E1] px-4 sm:px-6 py-2 text-[11px] border-b border-white/5">
+      {/* 03. COMPACT BRANDING STRIP (Subtle Single-Line Top Bar) */}
+      <div className="bg-[#1C1D1F] text-[#E8E6E1] px-4 sm:px-6 py-1.5 text-[10px] sm:text-[11px] border-b border-white/5">
         <div className="max-w-7xl mx-auto flex items-center justify-between tracking-wide">
-          <div className="flex items-center space-x-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C8A86B] animate-pulse" />
-            <span className="text-white/90 font-medium">Interactive Concept Demonstration</span>
+          {/* Left on Desktop: Studio Scope */}
+          <div className="flex items-center space-x-2 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C8A86B] shrink-0 animate-pulse" />
+            <span className="text-white/85 font-medium truncate sm:hidden">
+              Demo provided by <strong className="text-white font-semibold">BlazeByte Studio</strong>
+            </span>
+            <span className="text-white/90 font-medium hidden sm:inline">
+              Interactive Concept Demonstration
+            </span>
             <span className="text-white/30 hidden sm:inline">•</span>
             <span className="text-[#C8A86B] font-medium hidden sm:inline">
               Flexispace Interiors, Bengaluru
             </span>
           </div>
 
-          <div className="flex items-center space-x-3 text-white/75 text-[11px]">
+          {/* Right on Desktop: Studio Attribution + Replay */}
+          <div className="hidden sm:flex items-center space-x-3 text-white/75 text-[11px]">
             <span>
               Demo provided by <strong className="text-white font-semibold">BlazeByte Studio</strong>
             </span>
@@ -81,27 +89,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
           </div>
+
+          {/* Right on Mobile: Subtle location badge */}
+          <div className="sm:hidden text-[9px] text-[#C8A86B] tracking-wider uppercase font-semibold shrink-0 ml-2">
+            Bengaluru
+          </div>
         </div>
       </div>
 
-      {/* 01. MAIN DESKTOP NAVIGATION */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
+      {/* 01. MAIN DESKTOP / COMPACT MOBILE NAVIGATION */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-18 flex items-center justify-between">
         {/* LEFT: Flexispace Logo & Wordmark */}
-        <a href="#" className="flex items-center space-x-3 group select-none">
-          <div className="w-9 h-9 rounded-lg bg-[#1C1D1F] text-[#F7F5F0] flex items-center justify-center font-serif text-lg font-bold border border-[#C8A86B]/30 group-hover:border-[#C8A86B] group-hover:bg-[#252522] transition-all shadow-sm">
+        <a href="#" className="flex items-center space-x-2.5 sm:space-x-3 group select-none">
+          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-[#1C1D1F] text-[#F7F5F0] flex items-center justify-center font-serif text-base sm:text-lg font-bold border border-[#C8A86B]/30 group-hover:border-[#C8A86B] group-hover:bg-[#252522] transition-all shadow-sm">
             F
           </div>
           <div className="flex flex-col">
-            <span className="font-serif text-xl font-bold tracking-[0.08em] text-[#1C1D1F] leading-tight">
+            <span className="font-serif text-lg sm:text-xl font-bold tracking-[0.08em] text-[#1C1D1F] leading-tight">
               FLEXISPACE
             </span>
-            <span className="text-[9px] tracking-[0.2em] uppercase text-[#A58A63] font-semibold mt-0.5">
+            <span className="text-[8px] sm:text-[9px] tracking-[0.18em] uppercase text-[#A58A63] font-semibold mt-0.5">
               Furniture, Designed Around You
             </span>
           </div>
         </a>
 
-        {/* CENTER: Minimal Luxury Navigation Links */}
+        {/* CENTER: Minimal Luxury Navigation Links (Desktop) */}
         <nav className="hidden lg:flex items-center space-x-8 text-[13px] font-medium text-[#252522]/80">
           <button
             onClick={onScrollToConfigurator}
@@ -230,7 +243,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </nav>
 
-        {/* RIGHT: Premium CTA Button */}
+        {/* RIGHT: Premium CTA Button (Desktop) */}
         <div className="hidden lg:flex items-center">
           <button
             onClick={onScrollToConfigurator}
@@ -251,9 +264,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
       </div>
 
-      {/* 03. RESPONSIVE MOBILE NAVIGATION PANEL */}
+      {/* RESPONSIVE MOBILE NAVIGATION PANEL */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#FDFBF7] border-b border-[#DDD8CF] px-6 py-5 space-y-4 shadow-xl animate-in slide-in-from-top-3 duration-200">
+        <div className="lg:hidden bg-[#FDFBF7] border-b border-[#DDD8CF] px-5 py-4 space-y-3.5 shadow-xl animate-in slide-in-from-top-3 duration-200">
           <nav className="flex flex-col space-y-1">
             <button
               onClick={() => {
@@ -262,7 +275,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className="text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1C1D1F] hover:bg-[#ECE8E1] transition-colors"
             >
-              Configurator
+              Configurator Studio
             </button>
 
             <a
@@ -270,7 +283,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1C1D1F] hover:bg-[#ECE8E1] transition-colors block"
             >
-              Catalogue
+              Catalogue Families
             </a>
 
             <button
@@ -280,7 +293,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className="text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1C1D1F] hover:bg-[#ECE8E1] transition-colors"
             >
-              Showroom
+              Showroom Mode
             </button>
 
             {/* Mobile Platform Accordion */}
@@ -289,7 +302,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setMobilePlatformOpen(!mobilePlatformOpen)}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1C1D1F] hover:bg-[#ECE8E1] transition-colors"
               >
-                <span>Platform</span>
+                <span>Platform Capabilities</span>
                 <ChevronDown
                   className={`w-4 h-4 text-[#A58A63] transition-transform duration-200 ${
                     mobilePlatformOpen ? 'rotate-180' : ''
@@ -298,7 +311,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               {mobilePlatformOpen && (
-                <div className="pl-4 pr-1 py-1 space-y-1 bg-[#F7F5F0] rounded-lg mt-1 border border-[#DDD8CF]/50">
+                <div className="pl-3 pr-1 py-1 space-y-1 bg-[#F7F5F0] rounded-lg mt-1 border border-[#DDD8CF]/50">
                   <button
                     onClick={() => {
                       onOpenDealer();
@@ -343,6 +356,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Replay Intro Trigger (Mobile) */}
+            {onReplayIntro && (
+              <button
+                onClick={() => {
+                  onReplayIntro();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-xs text-[#A58A63] hover:text-[#1C1D1F] flex items-center space-x-2 pt-2 border-t border-[#DDD8CF]/40"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-[#C8A86B]" />
+                <span>Replay Intro Experience</span>
+              </button>
+            )}
           </nav>
 
           {/* Mobile CTA */}

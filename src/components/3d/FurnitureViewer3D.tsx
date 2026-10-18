@@ -5,14 +5,14 @@ import type { ConfigurationState } from '../../types/configurator';
 import { COLOR_TONES } from '../../data/productData';
 import {
   RotateCcw,
-  Eye,
   Sun,
-  Moon,
   Sparkles,
   Maximize2,
   Minimize2,
   Box,
   Layers,
+  Check,
+  Compass,
 } from 'lucide-react';
 
 interface FurnitureViewer3DProps {
@@ -36,7 +36,7 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
   const controlsRef = useRef<OrbitControls | null>(null);
   const animationFrameId = useRef<number | null>(null);
 
-  // Mesh & Group references for dynamic updates without scene reconstruction
+  // Mesh & Group references for dynamic updates
   const bedRootGroupRef = useRef<THREE.Group | null>(null);
   const drawerLeftGroupRef = useRef<THREE.Group | null>(null);
   const drawerRightGroupRef = useRef<THREE.Group | null>(null);
@@ -59,8 +59,32 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isCanvasReady, setIsCanvasReady] = useState(false);
 
+  // Mobile Touch Trapping Prevention State
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isTouchInteracting, setIsTouchInteracting] = useState(false);
+
   // Drawer slide animation target & current position
   const drawerAnimProgress = useRef(0);
+
+  // Check mobile device on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileDevice(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Update controls enabled state based on mobile interaction mode
+  useEffect(() => {
+    if (!controlsRef.current) return;
+    if (isMobileDevice && !isFullscreen) {
+      controlsRef.current.enabled = isTouchInteracting;
+    } else {
+      controlsRef.current.enabled = true;
+    }
+  }, [isMobileDevice, isFullscreen, isTouchInteracting]);
 
   // Helper to create procedural wood and lacquer canvas textures
   const createProceduralTextures = useCallback(() => {
@@ -71,13 +95,11 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
     const ctxWalnut = walnutCanvas.getContext('2d')!;
     ctxWalnut.fillStyle = '#5A3D28';
     ctxWalnut.fillRect(0, 0, 512, 512);
-    // Draw wood grain bands
     for (let i = 0; i < 512; i += 4) {
       const alpha = 0.08 + Math.sin(i * 0.05) * 0.05;
       ctxWalnut.fillStyle = i % 8 === 0 ? `rgba(40, 24, 14, ${alpha})` : `rgba(110, 78, 50, ${alpha})`;
       ctxWalnut.fillRect(0, i, 512, 3);
     }
-    // Add fine pores
     for (let j = 0; j < 3000; j++) {
       const rx = Math.random() * 512;
       const ry = Math.random() * 512;
@@ -124,29 +146,46 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
     const fabricTexture = new THREE.CanvasTexture(fabricCanvas);
     fabricTexture.wrapS = THREE.RepeatWrapping;
     fabricTexture.wrapT = THREE.RepeatWrapping;
-    fabricTexture.repeat.set(6, 6);
+    fabricTexture.repeat.set(4, 4);
 
     return { walnutTexture, oakTexture, fabricTexture };
   }, []);
 
-  // Update Materials when config color / finish changes
+  // Update physical material properties on live meshes
   const updateMaterials = useCallback(() => {
-    const colorObj = COLOR_TONES.find((c) => c.id === config.colorTone) || COLOR_TONES[0];
-    const isAcrylic = config.finishType === 'acrylic';
-    const isPU = config.finishType === 'pu_coating';
+    if (!sceneRef.current) return;
 
-    // Calculate PBR values based on finish
-    const roughness = isAcrylic ? 0.08 : isPU ? 0.35 : colorObj.roughness;
-    const metalness = isAcrylic ? 0.15 : colorObj.metalness;
-    const clearcoat = isAcrylic ? 1.0 : isPU ? 0.6 : 0.0;
-    const clearcoatRoughness = isAcrylic ? 0.05 : 0.2;
+    let roughness = 0.35;
+    let metalness = 0.05;
+    let clearcoat = 0.5;
+    let clearcoatRoughness = 0.15;
 
-    const baseColor = new THREE.Color(colorObj.hex);
+    switch (config.finishType) {
+      case 'pu_coating':
+        roughness = 0.38;
+        metalness = 0.05;
+        clearcoat = 0.45;
+        clearcoatRoughness = 0.12;
+        break;
+      case 'acrylic':
+        roughness = 0.04;
+        metalness = 0.12;
+        clearcoat = 1.0;
+        clearcoatRoughness = 0.02;
+        break;
+      case 'matte_laminate':
+        roughness = 0.65;
+        metalness = 0.01;
+        clearcoat = 0.1;
+        break;
+    }
+
+    const activeColor = COLOR_TONES.find((c) => c.id === config.colorTone)?.hex || '#5A3D28';
 
     frameMeshesRef.current.forEach((mesh) => {
       const mat = mesh.material as THREE.MeshPhysicalMaterial;
       if (mat) {
-        mat.color = baseColor;
+        mat.color = new THREE.Color(activeColor);
         mat.roughness = roughness;
         mat.metalness = metalness;
         mat.clearcoat = clearcoat;
@@ -156,7 +195,6 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       }
     });
 
-    // Update leg materials (solid natural tone)
     legMeshesRef.current.forEach((mesh) => {
       const mat = mesh.material as THREE.MeshStandardMaterial;
       if (mat) {
@@ -167,11 +205,10 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       }
     });
 
-    // Update brass ferrule materials
     brassMeshesRef.current.forEach((mesh) => {
       const mat = mesh.material as THREE.MeshStandardMaterial;
       if (mat) {
-        mat.color = new THREE.Color('#D4AF37'); // Classic warm brass
+        mat.color = new THREE.Color('#D4AF37');
         mat.metalness = 0.85;
         mat.roughness = 0.22;
         mat.wireframe = isWireframe;
@@ -180,39 +217,70 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
     });
   }, [config.colorTone, config.finishType, isWireframe]);
 
-  // Adjust camera to preset smoothly
+  // Responsive Mathematical Camera-Fitting System (Model Bounds Aware)
+  const fitCameraToModel = useCallback(
+    (preset: CameraAngle = currentCameraAngle) => {
+      if (!cameraRef.current || !controlsRef.current || !bedRootGroupRef.current || !mountRef.current) return;
+      const cam = cameraRef.current;
+      const ctrl = controlsRef.current;
+      const model = bedRootGroupRef.current;
+      const container = mountRef.current;
+
+      const width = container.clientWidth || 390;
+      const height = container.clientHeight || 340;
+      const aspect = width / height;
+
+      // Compute actual bounding box of rendered bed geometry
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+
+      const fovVertical = (cam.fov * Math.PI) / 180;
+      const fovHorizontal = 2 * Math.atan(Math.tan(fovVertical / 2) * aspect);
+
+      // Model maximum diagonal extent
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      const distV = maxDim / (2 * Math.tan(fovVertical / 2));
+      const distH = maxDim / (2 * Math.tan(fovHorizontal / 2));
+
+      // Padding factor: Extra generous on narrow mobile screens to avoid any clipping
+      const paddingFactor = aspect < 1.0 ? 1.48 : aspect < 1.3 ? 1.38 : 1.24;
+      const targetDistance = Math.max(distV, distH) * paddingFactor;
+
+      // Direction vector presets
+      let dir = new THREE.Vector3(0.72, 0.58, 0.94).normalize();
+      if (preset === 'front') {
+        dir = new THREE.Vector3(0, 0.45, 1).normalize();
+      } else if (preset === 'side') {
+        dir = new THREE.Vector3(1, 0.38, 0).normalize();
+      } else if (preset === 'top') {
+        dir = new THREE.Vector3(0, 1, 0.05).normalize();
+      } else if (preset === 'detail') {
+        // Zoom on turned leg and brass ferrule
+        cam.position.set(size.x / 2 + 0.38, 0.42, size.z / 2 + 0.48);
+        ctrl.target.set(size.x / 2 - 0.07, 0.16, size.z / 2 - 0.07);
+        ctrl.update();
+        return;
+      }
+
+      // Slightly elevated focal center for optical balance
+      const targetCenter = center.clone();
+      targetCenter.y += 0.05;
+
+      cam.position.copy(targetCenter).addScaledVector(dir, targetDistance);
+      ctrl.target.copy(targetCenter);
+      ctrl.update();
+    },
+    [currentCameraAngle]
+  );
+
+  // Apply camera angle preset
   const applyCameraPreset = (preset: CameraAngle) => {
-    if (!cameraRef.current || !controlsRef.current) return;
-    const cam = cameraRef.current;
-    const ctrl = controlsRef.current;
     setCurrentCameraAngle(preset);
-
-    const isKing = config.size === 'king';
-    const distFactor = isKing ? 1.08 : 1.0;
-
-    switch (preset) {
-      case 'three_quarter':
-        cam.position.set(2.8 * distFactor, 2.1 * distFactor, 3.4 * distFactor);
-        ctrl.target.set(0, 0.45, 0);
-        break;
-      case 'front':
-        cam.position.set(0, 1.6 * distFactor, 3.8 * distFactor);
-        ctrl.target.set(0, 0.55, 0);
-        break;
-      case 'side':
-        cam.position.set(4.0 * distFactor, 1.2 * distFactor, 0);
-        ctrl.target.set(0, 0.45, 0);
-        break;
-      case 'top':
-        cam.position.set(0, 4.6 * distFactor, 0.1);
-        ctrl.target.set(0, 0.3, 0);
-        break;
-      case 'detail':
-        cam.position.set(1.4, 0.65, 1.6);
-        ctrl.target.set(0.9, 0.35, 0.9);
-        break;
-    }
-    ctrl.update();
+    fitCameraToModel(preset);
   };
 
   // Adjust lighting preset
@@ -233,10 +301,10 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
         break;
       case 'daylight':
         sceneRef.current.background = new THREE.Color('#FFFFFF');
-        ambientLightRef.current.intensity = 1.8;
-        ambientLightRef.current.color = new THREE.Color('#F5F8FA');
-        mainSpotRef.current.intensity = 44;
-        mainSpotRef.current.color = new THREE.Color('#FFFFFF');
+        ambientLightRef.current.intensity = 1.6;
+        ambientLightRef.current.color = new THREE.Color('#FFFFFF');
+        mainSpotRef.current.intensity = 48;
+        mainSpotRef.current.color = new THREE.Color('#F8FAFC');
         fillLightRef.current.intensity = 2.0;
         fillLightRef.current.color = new THREE.Color('#EDF2F7');
         if (headboardLedRef.current) headboardLedRef.current.intensity = 0.2;
@@ -257,7 +325,6 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
   // Build the complete bed 3D geometry
   const buildBedModel = useCallback(
     (scene: THREE.Scene, textures: ReturnType<typeof createProceduralTextures>) => {
-      // Remove old model if present
       if (bedRootGroupRef.current) {
         scene.remove(bedRootGroupRef.current);
       }
@@ -270,7 +337,6 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       bedRootGroupRef.current = rootGroup;
 
       const isKing = config.size === 'king';
-      // Proportions: Queen = 1.62m wide, King = 1.92m wide, Length = 2.1m
       const bedWidth = isKing ? 1.92 : 1.62;
       const bedLength = 2.1;
       const legHeight = 0.16;
@@ -278,7 +344,6 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       const legRadiusBottom = 0.024;
       const brassHeight = 0.045;
 
-      // Base shared Physical Material for bed frame
       const frameMaterial = new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(COLOR_TONES.find((c) => c.id === config.colorTone)?.hex || '#5A3D28'),
         roughness: 0.35,
@@ -287,20 +352,18 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
         clearcoatRoughness: 0.15,
       });
 
-      // Leg Wood Material
       const legWoodMaterial = new THREE.MeshStandardMaterial({
         color: new THREE.Color('#3D2817'),
         roughness: 0.6,
       });
 
-      // Brass Ferrule Material
       const brassMaterial = new THREE.MeshStandardMaterial({
         color: new THREE.Color('#D4AF37'),
         metalness: 0.88,
         roughness: 0.22,
       });
 
-      // 1. Four Tapered Teakwood-style Legs with Brass Ferrules
+      // 1. Tapered Turned Legs with Brass Ferrules
       const legOffsets = [
         { x: bedWidth / 2 - 0.07, z: bedLength / 2 - 0.07 },
         { x: -(bedWidth / 2 - 0.07), z: bedLength / 2 - 0.07 },
@@ -312,7 +375,6 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
         const legGroup = new THREE.Group();
         legGroup.position.set(pos.x, legHeight / 2, pos.z);
 
-        // Tapered timber body
         const timberGeo = new THREE.CylinderGeometry(
           legRadiusTop,
           legRadiusBottom + 0.005,
@@ -325,7 +387,6 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
         legGroup.add(timberMesh);
         legMeshesRef.current.push(timberMesh);
 
-        // Brass ferrule sleeve at base
         const brassGeo = new THREE.CylinderGeometry(
           legRadiusBottom + 0.005,
           legRadiusBottom,
@@ -341,12 +402,11 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
         rootGroup.add(legGroup);
       });
 
-      // 2. Bed Platform Perimeter Rails (Side Aprons & Footboard)
+      // 2. Bed Platform Perimeter Rails
       const railThickness = 0.04;
       const railDepth = 0.22;
       const platformCenterY = legHeight + railDepth / 2;
 
-      // Left Rail
       const sideRailGeo = new THREE.BoxGeometry(railThickness, railDepth, bedLength);
       const leftRail = new THREE.Mesh(sideRailGeo, frameMaterial);
       leftRail.position.set(-(bedWidth / 2 - railThickness / 2), platformCenterY, 0);
@@ -355,7 +415,6 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       rootGroup.add(leftRail);
       frameMeshesRef.current.push(leftRail);
 
-      // Right Rail
       const rightRail = new THREE.Mesh(sideRailGeo, frameMaterial);
       rightRail.position.set(bedWidth / 2 - railThickness / 2, platformCenterY, 0);
       rightRail.castShadow = true;
@@ -363,7 +422,6 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       rootGroup.add(rightRail);
       frameMeshesRef.current.push(rightRail);
 
-      // Footboard Front Rail (with subtle 45-degree mitred joint aesthetic)
       const footRailGeo = new THREE.BoxGeometry(bedWidth, railDepth, railThickness);
       const footRail = new THREE.Mesh(footRailGeo, frameMaterial);
       footRail.position.set(0, platformCenterY, bedLength / 2 - railThickness / 2);
@@ -372,129 +430,112 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       rootGroup.add(footRail);
       frameMeshesRef.current.push(footRail);
 
-      // Headboard Bottom Rail
-      const headBottomRail = new THREE.Mesh(footRailGeo, frameMaterial);
-      headBottomRail.position.set(0, platformCenterY, -(bedLength / 2 - railThickness / 2));
-      headBottomRail.castShadow = true;
-      rootGroup.add(headBottomRail);
-      frameMeshesRef.current.push(headBottomRail);
-
-      // Center Structural Spine Beam (Powder-coated steel)
-      const centerBeamGeo = new THREE.BoxGeometry(0.06, 0.08, bedLength - 0.1);
-      const centerBeamMat = new THREE.MeshStandardMaterial({
-        color: '#252525',
-        metalness: 0.7,
-        roughness: 0.4,
-      });
-      const centerBeam = new THREE.Mesh(centerBeamGeo, centerBeamMat);
-      centerBeam.position.set(0, platformCenterY - 0.04, 0);
-      rootGroup.add(centerBeam);
-
-      // 3. Wooden Bed Slats Base
-      const slatCount = 14;
+      // 3. Structural Slat Mattress Base
+      const slatCount = isKing ? 14 : 12;
+      const slatSpacing = (bedLength - 0.2) / slatCount;
+      const slatGeo = new THREE.BoxGeometry(bedWidth - 0.1, 0.02, 0.07);
       const slatMat = new THREE.MeshStandardMaterial({
-        color: '#D8C6A5',
+        color: '#C2A67E',
         roughness: 0.7,
       });
-      const slatSpacing = (bedLength - 0.2) / slatCount;
+
       for (let i = 0; i < slatCount; i++) {
-        const slatGeo = new THREE.BoxGeometry(bedWidth - 0.1, 0.015, 0.06);
         const slat = new THREE.Mesh(slatGeo, slatMat);
-        slat.position.set(0, platformCenterY + 0.05, -bedLength / 2 + 0.1 + i * slatSpacing);
+        const slatZ = -(bedLength / 2 - 0.12) + i * slatSpacing;
+        slat.position.set(0, platformCenterY + 0.05, slatZ);
+        slat.castShadow = true;
         slat.receiveShadow = true;
         rootGroup.add(slat);
       }
 
-      // 4. Under-Bed Storage Drawers (Left and Right Modules)
-      const drawerWidth = bedWidth / 2 - 0.06;
-      const drawerLength = 0.82;
-      const drawerDepth = 0.17;
-      const drawerY = legHeight + drawerDepth / 2 + 0.01;
+      // 4. Animated Under-Bed Pull-Out Drawers
+      const drawerW = bedWidth / 2 - 0.08;
+      const drawerH = railDepth - 0.05;
+      const drawerD = 0.8;
 
-      // Left Drawer Group
-      const leftDrawerGroup = new THREE.Group();
-      leftDrawerGroup.position.set(-bedWidth / 4, drawerY, 0.15);
-      const drawerFaciaMat = frameMaterial.clone();
-
-      const drawerBoxGeo = new THREE.BoxGeometry(drawerWidth, drawerDepth, drawerLength);
-      const leftDrawerBox = new THREE.Mesh(drawerBoxGeo, drawerFaciaMat);
-      leftDrawerBox.castShadow = true;
-      leftDrawerBox.receiveShadow = true;
-      leftDrawerGroup.add(leftDrawerBox);
-      frameMeshesRef.current.push(leftDrawerBox);
-
-      // Drawer Pull Handle (brushed metal recessed finger groove)
-      const handleGeo = new THREE.BoxGeometry(0.02, 0.02, 0.18);
-      const handleMat = new THREE.MeshStandardMaterial({
-        color: '#333333',
-        metalness: 0.9,
-        roughness: 0.3,
+      const drawerMat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(COLOR_TONES.find((c) => c.id === config.colorTone)?.hex || '#5A3D28'),
+        roughness: 0.35,
+        metalness: 0.05,
       });
-      const leftHandle = new THREE.Mesh(handleGeo, handleMat);
-      leftHandle.position.set(-(drawerWidth / 2 + 0.012), 0, 0);
-      leftDrawerGroup.add(leftHandle);
+
+      // Left Drawer
+      const leftDrawerGroup = new THREE.Group();
+      leftDrawerGroup.position.set(-bedWidth / 4, platformCenterY - 0.01, 0);
+
+      const leftFrontGeo = new THREE.BoxGeometry(drawerW, drawerH, 0.022);
+      const leftFront = new THREE.Mesh(leftFrontGeo, drawerMat);
+      leftFront.position.set(0, 0, drawerD / 2);
+      leftFront.castShadow = true;
+      leftDrawerGroup.add(leftFront);
+      frameMeshesRef.current.push(leftFront);
+
+      const leftBoxGeo = new THREE.BoxGeometry(drawerW - 0.04, drawerH - 0.02, drawerD - 0.04);
+      const innerWoodMat = new THREE.MeshStandardMaterial({ color: '#D4C4A8', roughness: 0.6 });
+      const leftBox = new THREE.Mesh(leftBoxGeo, innerWoodMat);
+      leftBox.position.set(0, 0, 0);
+      leftDrawerGroup.add(leftBox);
 
       drawerLeftGroupRef.current = leftDrawerGroup;
       rootGroup.add(leftDrawerGroup);
 
-      // Right Drawer Group
+      // Right Drawer
       const rightDrawerGroup = new THREE.Group();
-      rightDrawerGroup.position.set(bedWidth / 4, drawerY, 0.15);
-      const rightDrawerBox = new THREE.Mesh(drawerBoxGeo, drawerFaciaMat);
-      rightDrawerBox.castShadow = true;
-      rightDrawerBox.receiveShadow = true;
-      rightDrawerGroup.add(rightDrawerBox);
-      frameMeshesRef.current.push(rightDrawerBox);
+      rightDrawerGroup.position.set(bedWidth / 4, platformCenterY - 0.01, 0);
 
-      const rightHandle = new THREE.Mesh(handleGeo, handleMat);
-      rightHandle.position.set(drawerWidth / 2 + 0.012, 0, 0);
-      rightDrawerGroup.add(rightHandle);
+      const rightFrontGeo = new THREE.BoxGeometry(drawerW, drawerH, 0.022);
+      const rightFront = new THREE.Mesh(rightFrontGeo, drawerMat);
+      rightFront.position.set(0, 0, drawerD / 2);
+      rightFront.castShadow = true;
+      rightDrawerGroup.add(rightFront);
+      frameMeshesRef.current.push(rightFront);
+
+      const rightBox = new THREE.Mesh(leftBoxGeo, innerWoodMat);
+      rightBox.position.set(0, 0, 0);
+      rightDrawerGroup.add(rightBox);
 
       drawerRightGroupRef.current = rightDrawerGroup;
       rootGroup.add(rightDrawerGroup);
 
-      // Set visibility according to configuration
-      leftDrawerGroup.visible = config.hasStorageDrawers;
-      rightDrawerGroup.visible = config.hasStorageDrawers;
-
       // 5. Headboard Variations
+      const hbHeight = 1.05;
+      const hbThickness = 0.05;
+      const hbCenterY = legHeight + hbHeight / 2;
+      const hbZ = -(bedLength / 2 - hbThickness / 2);
+
       const headboardGroup = new THREE.Group();
-      const hbZ = -(bedLength / 2 + 0.03);
-      const hbHeight = 0.76;
-      const hbCenterY = legHeight + railDepth + hbHeight / 2 - 0.04;
       headboardGroup.position.set(0, hbCenterY, hbZ);
 
       if (config.headboardStyle === 'architectural_slats') {
-        // Vertical Slats Design
-        const backboardGeo = new THREE.BoxGeometry(bedWidth + 0.08, hbHeight, 0.03);
-        const backboard = new THREE.Mesh(backboardGeo, frameMaterial);
-        backboard.castShadow = true;
-        headboardGroup.add(backboard);
-        frameMeshesRef.current.push(backboard);
+        const slatPanelGeo = new THREE.BoxGeometry(bedWidth + 0.08, hbHeight, hbThickness);
+        const slatPanel = new THREE.Mesh(slatPanelGeo, frameMaterial);
+        slatPanel.castShadow = true;
+        slatPanel.receiveShadow = true;
+        headboardGroup.add(slatPanel);
+        frameMeshesRef.current.push(slatPanel);
 
-        // Fluted vertical slats with subtle depth
-        const slatNum = isKing ? 28 : 24;
-        const slatW = (bedWidth + 0.04) / slatNum - 0.012;
-        const slatDepth = 0.022;
-        for (let s = 0; s < slatNum; s++) {
-          const sx = -(bedWidth / 2) + 0.02 + s * (slatW + 0.012);
-          const flutedGeo = new THREE.BoxGeometry(slatW, hbHeight - 0.04, slatDepth);
-          const flutedMesh = new THREE.Mesh(flutedGeo, frameMaterial);
-          flutedMesh.position.set(sx, 0, 0.025);
-          flutedMesh.castShadow = true;
-          headboardGroup.add(flutedMesh);
-          frameMeshesRef.current.push(flutedMesh);
+        const fluteCount = isKing ? 36 : 30;
+        const fluteWidth = 0.022;
+        const fluteDepth = 0.015;
+        const fluteSpacing = (bedWidth - 0.04) / fluteCount;
+        const fluteGeo = new THREE.BoxGeometry(fluteWidth, hbHeight - 0.08, fluteDepth);
+
+        for (let f = 0; f < fluteCount; f++) {
+          const fluteMesh = new THREE.Mesh(fluteGeo, frameMaterial);
+          const fX = -(bedWidth / 2 - 0.03) + f * fluteSpacing;
+          fluteMesh.position.set(fX, 0, hbThickness / 2 + fluteDepth / 2);
+          fluteMesh.castShadow = true;
+          headboardGroup.add(fluteMesh);
+          frameMeshesRef.current.push(fluteMesh);
         }
       } else if (config.headboardStyle === 'upholstered_panel') {
-        // Upholstered Belgian Linen Cushion Inset
-        const outerFrameGeo = new THREE.BoxGeometry(bedWidth + 0.08, hbHeight, 0.05);
-        const outerFrame = new THREE.Mesh(outerFrameGeo, frameMaterial);
-        outerFrame.castShadow = true;
-        headboardGroup.add(outerFrame);
-        frameMeshesRef.current.push(outerFrame);
+        const frameBorderGeo = new THREE.BoxGeometry(bedWidth + 0.06, hbHeight, hbThickness);
+        const frameBorder = new THREE.Mesh(frameBorderGeo, frameMaterial);
+        frameBorder.castShadow = true;
+        headboardGroup.add(frameBorder);
+        frameMeshesRef.current.push(frameBorder);
 
-        // Padded fabric cushion with subtle bevel
-        const cushionGeo = new THREE.BoxGeometry(bedWidth - 0.12, hbHeight - 0.12, 0.06);
+        const cushionGeo = new THREE.BoxGeometry(bedWidth - 0.06, hbHeight - 0.12, 0.06);
         const cushionMat = new THREE.MeshStandardMaterial({
           map: textures.fabricTexture,
           color: '#EDE8DF',
@@ -505,14 +546,12 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
         cushion.castShadow = true;
         headboardGroup.add(cushion);
       } else {
-        // Floating Horizon Ledge Shelf
         const shelfBackGeo = new THREE.BoxGeometry(bedWidth + 0.08, hbHeight, 0.035);
         const shelfBack = new THREE.Mesh(shelfBackGeo, frameMaterial);
         shelfBack.castShadow = true;
         headboardGroup.add(shelfBack);
         frameMeshesRef.current.push(shelfBack);
 
-        // Floating Top Horizon Shelf
         const topShelfGeo = new THREE.BoxGeometry(bedWidth + 0.14, 0.035, 0.14);
         const topShelf = new THREE.Mesh(topShelfGeo, frameMaterial);
         topShelf.position.set(0, hbHeight / 2, 0.05);
@@ -524,13 +563,12 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       headboardGroupRef.current = headboardGroup;
       rootGroup.add(headboardGroup);
 
-      // Headboard Warm LED Halo Light (concealed behind headboard)
       const headLed = new THREE.PointLight('#FFAA44', 0.5, 4.5);
       headLed.position.set(0, hbCenterY + 0.2, hbZ - 0.08);
       rootGroup.add(headLed);
       headboardLedRef.current = headLed;
 
-      // 6. Premium Mattress & Linen Accessories
+      // 6. Mattress & Linen Accessories
       const mattressWidth = bedWidth - 0.08;
       const mattressLength = bedLength - 0.1;
       const mattressThickness = 0.24;
@@ -549,7 +587,7 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       mattress.receiveShadow = true;
       rootGroup.add(mattress);
 
-      // Pillow Duo at headboard
+      // Pillows
       const pillowGeo = new THREE.BoxGeometry(0.58, 0.12, 0.38);
       const pillowMat = new THREE.MeshStandardMaterial({
         color: '#FAF8F5',
@@ -568,7 +606,7 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       pillowRight.castShadow = true;
       rootGroup.add(pillowRight);
 
-      // Draped Foot Runner / Linen Blanket Fold
+      // Linen Throw
       const runnerGeo = new THREE.BoxGeometry(mattressWidth + 0.04, 0.02, 0.65);
       const runnerMat = new THREE.MeshStandardMaterial({
         color: '#D8CEBE',
@@ -579,10 +617,7 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       runner.castShadow = true;
       rootGroup.add(runner);
 
-      // Add to scene
       scene.add(rootGroup);
-
-      // Apply initial materials
       updateMaterials();
     },
     [config.size, config.headboardStyle, config.colorTone, config.hasStorageDrawers, updateMaterials]
@@ -592,20 +627,16 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
   useEffect(() => {
     if (!mountRef.current) return;
     const container = mountRef.current;
-    const width = container.clientWidth || 800;
-    const height = container.clientHeight || 500;
+    const width = container.clientWidth || 390;
+    const height = container.clientHeight || 340;
 
-    // Scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#F7F5F0');
     sceneRef.current = scene;
 
-    // Camera
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 50);
-    camera.position.set(2.8, 2.1, 3.4);
     cameraRef.current = camera;
 
-    // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -616,17 +647,18 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Orbit Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.minDistance = 1.4;
-    controls.maxDistance = 7.5;
+    controls.maxDistance = 8.5;
     controls.maxPolarAngle = Math.PI / 2 - 0.04;
     controls.target.set(0, 0.45, 0);
+    // On mobile, controls are enabled only in interactive mode
+    controls.enabled = window.innerWidth >= 1024;
     controlsRef.current = controls;
 
-    // Lighting Setup
+    // Lighting
     const ambient = new THREE.AmbientLight('#FFF8F0', 1.3);
     scene.add(ambient);
     ambientLightRef.current = ambient;
@@ -649,7 +681,7 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
     scene.add(fill);
     fillLightRef.current = fill;
 
-    // Ground Plane with Soft Architectural Contact Shadow
+    // Contact Floor Shadow
     const floorGeo = new THREE.PlaneGeometry(16, 16);
     const floorMat = new THREE.ShadowMaterial({ opacity: 0.18 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -658,7 +690,7 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Subtle showroom pedestal disk
+    // Showroom Pedestal
     const pedestalGeo = new THREE.CylinderGeometry(2.4, 2.5, 0.015, 64);
     const pedestalMat = new THREE.MeshStandardMaterial({
       color: '#EDE8DF',
@@ -669,12 +701,14 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
     pedestal.receiveShadow = true;
     scene.add(pedestal);
 
-    // Procedural textures
     const textures = createProceduralTextures();
-
-    // Initial bed build
     buildBedModel(scene, textures);
     setIsCanvasReady(true);
+
+    // Initial camera fitting
+    setTimeout(() => {
+      fitCameraToModel('three_quarter');
+    }, 50);
 
     // Animation Loop
     let lastTime = performance.now();
@@ -685,7 +719,7 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       const delta = (now - lastTime) / 1000;
       lastTime = now;
 
-      // Handle drawer smooth slide in/out
+      // Smooth drawer slide
       const targetProgress = config.drawersOpen ? 1 : 0;
       drawerAnimProgress.current += (targetProgress - drawerAnimProgress.current) * Math.min(delta * 6, 1);
 
@@ -695,7 +729,6 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
         drawerRightGroupRef.current.position.x = (config.size === 'king' ? 1.92 : 1.62) / 4 + slideDistance;
       }
 
-      // Auto-rotation when enabled
       if (isAutoRotating && controlsRef.current) {
         controlsRef.current.autoRotate = true;
         controlsRef.current.autoRotateSpeed = 1.2;
@@ -708,7 +741,7 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
     };
     animate();
 
-    // Resize Handler
+    // Resize Handler with responsive fitting
     const handleResize = () => {
       if (!container || !renderer || !camera) return;
       const w = container.clientWidth;
@@ -716,6 +749,7 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      fitCameraToModel(currentCameraAngle);
     };
 
     window.addEventListener('resize', handleResize);
@@ -728,16 +762,18 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
       }
       renderer.dispose();
     };
-  }, []); // Run once on mount
+  }, []);
 
-  // Rebuild bed geometry when size, headboard, or storage option changes
+  // Rebuild bed geometry when size or structural style changes
   useEffect(() => {
     if (!sceneRef.current || !isCanvasReady) return;
     const textures = createProceduralTextures();
     buildBedModel(sceneRef.current, textures);
-  }, [config.size, config.headboardStyle, config.hasStorageDrawers, isCanvasReady, buildBedModel, createProceduralTextures]);
+    // Refit camera to accommodate King (1.92m) vs Queen (1.62m)
+    fitCameraToModel(currentCameraAngle);
+  }, [config.size, config.headboardStyle, config.hasStorageDrawers, isCanvasReady, buildBedModel, createProceduralTextures, fitCameraToModel, currentCameraAngle]);
 
-  // Update materials smoothly when colors or finish changes
+  // Update materials smoothly
   useEffect(() => {
     if (isCanvasReady) {
       updateMaterials();
@@ -754,71 +790,97 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
 
   return (
     <div
-      className={`relative w-full h-full min-h-[440px] md:min-h-[560px] rounded-2xl overflow-hidden bg-gradient-to-b from-[#F9F7F2] to-[#ECE7DE] border border-[#DDD8CF] shadow-inner select-none transition-all duration-300 ${
-        isFullscreen ? 'fixed inset-0 z-50 rounded-none min-h-screen' : ''
-      } ${isCompact ? 'min-h-[380px]' : ''}`}
+      className={`relative w-full h-full rounded-2xl overflow-hidden bg-gradient-to-b from-[#F9F7F2] to-[#ECE7DE] border border-[#DDD8CF] shadow-sm select-none transition-all duration-300 ${
+        isFullscreen ? 'fixed inset-0 z-50 rounded-none h-screen' : ''
+      }`}
     >
-      {/* 3D WebGL Canvas Container */}
-      <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+      {/* 3D WebGL Canvas Container with pan-y touch behavior for natural page scroll */}
+      <div
+        ref={mountRef}
+        style={{ touchAction: isTouchInteracting || !isMobileDevice ? 'none' : 'pan-y' }}
+        className="w-full h-full cursor-grab active:cursor-grabbing"
+      />
 
-      {/* Floating Header HUD */}
-      <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-        <div className="bg-[#FFFEFC]/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#DDD8CF] shadow-sm flex items-center space-x-2.5 pointer-events-auto">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-semibold tracking-wide uppercase text-[#252522]">
-            Interactive 3D Engine
+      {/* TOP HUD: Minimalist, Architectural, No Overlap */}
+      <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
+        <div className="bg-[#FFFEFC]/95 backdrop-blur-md px-3 py-1 rounded-full border border-[#DDD8CF] shadow-sm flex items-center space-x-2 pointer-events-auto">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-[#1C1D1F]">
+            Aura Bed Studio
           </span>
-          <span className="text-xs text-[#252522]/40">•</span>
-          <span className="text-xs text-[#A58A63] font-medium">
-            {config.size.toUpperCase()} | {config.colorTone.replace('_', ' ').toUpperCase()}
+          <span className="text-[11px] text-[#A58A63] font-medium hidden sm:inline">
+            • {config.size.toUpperCase()}
           </span>
         </div>
 
         {/* Viewport Action Badges */}
-        <div className="flex items-center space-x-2 pointer-events-auto">
+        <div className="flex items-center space-x-1.5 pointer-events-auto">
           {config.hasStorageDrawers && onToggleDrawers && (
             <button
               onClick={onToggleDrawers}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-all flex items-center space-x-1.5 font-medium shadow-sm backdrop-blur-md ${
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-all flex items-center space-x-1 font-medium shadow-sm backdrop-blur-md ${
                 config.drawersOpen
                   ? 'bg-[#A58A63] text-white border-[#A58A63]'
-                  : 'bg-[#FFFEFC]/90 text-[#252522] border-[#DDD8CF] hover:border-[#A58A63]'
+                  : 'bg-[#FFFEFC]/95 text-[#252522] border-[#DDD8CF] hover:border-[#A58A63]'
               }`}
             >
-              <Box className="w-3.5 h-3.5" />
-              <span>{config.drawersOpen ? 'Close Drawers' : 'Open Drawers (Pull-Out)'}</span>
+              <Box className="w-3 h-3" />
+              <span>{config.drawersOpen ? 'Close' : 'Drawers'}</span>
             </button>
           )}
 
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-2 rounded-full bg-[#FFFEFC]/90 border border-[#DDD8CF] text-[#252522] hover:text-[#A58A63] transition shadow-sm backdrop-blur-md"
+            className="p-1.5 rounded-full bg-[#FFFEFC]/95 border border-[#DDD8CF] text-[#252522] hover:text-[#A58A63] transition shadow-sm backdrop-blur-md cursor-pointer"
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Inspection'}
           >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
 
-      {/* Bottom Floating Control HUD */}
-      <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
-        {/* Camera Preset Quick Buttons */}
-        <div className="bg-[#FFFEFC]/90 backdrop-blur-md p-1.5 rounded-2xl border border-[#DDD8CF] shadow-sm flex items-center space-x-1 pointer-events-auto">
+      {/* MOBILE INTERACTION OVERLAY: Tap to Rotate / Done Pill */}
+      {isMobileDevice && !isFullscreen && (
+        <div className="absolute top-12 right-3 pointer-events-auto z-10">
+          {!isTouchInteracting ? (
+            <button
+              onClick={() => setIsTouchInteracting(true)}
+              className="px-3 py-1.5 rounded-full bg-[#1C1D1F]/90 hover:bg-[#1C1D1F] text-white text-[11px] font-medium backdrop-blur-md shadow-md border border-white/20 flex items-center space-x-1.5 transition-all active:scale-95 cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3 text-[#C8A86B]" />
+              <span>Touch to Rotate</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsTouchInteracting(false)}
+              className="px-3 py-1.5 rounded-full bg-emerald-700 text-white text-[11px] font-semibold shadow-lg border border-white/30 flex items-center space-x-1.5 active:scale-95 cursor-pointer"
+            >
+              <Check className="w-3 h-3 text-white" />
+              <span>Done (Scroll Page)</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* BOTTOM CONTROL HUD: Single Clean Row */}
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
+        {/* Camera Angle Presets */}
+        <div className="bg-[#FFFEFC]/95 backdrop-blur-md p-1 rounded-xl border border-[#DDD8CF] shadow-sm flex items-center space-x-0.5 pointer-events-auto overflow-x-auto max-w-[80%] sm:max-w-none">
           <button
             onClick={() => applyCameraPreset('three_quarter')}
-            className={`px-2.5 py-1 rounded-xl text-xs font-medium transition ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer shrink-0 ${
               currentCameraAngle === 'three_quarter'
-                ? 'bg-[#252522] text-white'
+                ? 'bg-[#1C1D1F] text-white'
                 : 'text-[#252522]/70 hover:text-[#252522] hover:bg-[#ECE8E1]'
             }`}
           >
-            3/4 Studio
+            3/4 View
           </button>
           <button
             onClick={() => applyCameraPreset('front')}
-            className={`px-2.5 py-1 rounded-xl text-xs font-medium transition ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer shrink-0 ${
               currentCameraAngle === 'front'
-                ? 'bg-[#252522] text-white'
+                ? 'bg-[#1C1D1F] text-white'
                 : 'text-[#252522]/70 hover:text-[#252522] hover:bg-[#ECE8E1]'
             }`}
           >
@@ -826,9 +888,9 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
           </button>
           <button
             onClick={() => applyCameraPreset('side')}
-            className={`px-2.5 py-1 rounded-xl text-xs font-medium transition ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer shrink-0 ${
               currentCameraAngle === 'side'
-                ? 'bg-[#252522] text-white'
+                ? 'bg-[#1C1D1F] text-white'
                 : 'text-[#252522]/70 hover:text-[#252522] hover:bg-[#ECE8E1]'
             }`}
           >
@@ -836,97 +898,39 @@ export const FurnitureViewer3D: React.FC<FurnitureViewer3DProps> = ({
           </button>
           <button
             onClick={() => applyCameraPreset('top')}
-            className={`px-2.5 py-1 rounded-xl text-xs font-medium transition ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer shrink-0 ${
               currentCameraAngle === 'top'
-                ? 'bg-[#252522] text-white'
+                ? 'bg-[#1C1D1F] text-white'
                 : 'text-[#252522]/70 hover:text-[#252522] hover:bg-[#ECE8E1]'
             }`}
           >
-            Plan View
-          </button>
-          <button
-            onClick={() => applyCameraPreset('detail')}
-            className={`px-2.5 py-1 rounded-xl text-xs font-medium transition ${
-              currentCameraAngle === 'detail'
-                ? 'bg-[#252522] text-white'
-                : 'text-[#252522]/70 hover:text-[#252522] hover:bg-[#ECE8E1]'
-            }`}
-          >
-            Ferrule Joint
+            Plan
           </button>
         </div>
 
-        {/* Lighting & Display Mode Controls */}
-        <div className="bg-[#FFFEFC]/90 backdrop-blur-md p-1.5 rounded-2xl border border-[#DDD8CF] shadow-sm flex items-center space-x-1.5 pointer-events-auto">
-          {/* Lighting Mode Selector */}
-          <div className="flex items-center space-x-1 border-r border-[#DDD8CF] pr-2">
-            <button
-              onClick={() => applyLighting('showroom')}
-              className={`p-1.5 rounded-lg transition ${
-                lightingPreset === 'showroom' ? 'bg-[#A58A63] text-white' : 'text-[#252522]/70 hover:bg-[#ECE8E1]'
-              }`}
-              title="Showroom Warm Lighting (3200K)"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => applyLighting('daylight')}
-              className={`p-1.5 rounded-lg transition ${
-                lightingPreset === 'daylight' ? 'bg-[#A58A63] text-white' : 'text-[#252522]/70 hover:bg-[#ECE8E1]'
-              }`}
-              title="Daylight Studio Light (5500K)"
-            >
-              <Sun className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => applyLighting('evening')}
-              className={`p-1.5 rounded-lg transition ${
-                lightingPreset === 'evening' ? 'bg-[#A58A63] text-white' : 'text-[#252522]/70 hover:bg-[#ECE8E1]'
-              }`}
-              title="Evening Ambient + Headboard LED Strip"
-            >
-              <Moon className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Auto-rotate Toggle */}
+        {/* Lighting & Wireframe Controls (Desktop or Compact on Mobile) */}
+        <div className="bg-[#FFFEFC]/95 backdrop-blur-md p-1 rounded-xl border border-[#DDD8CF] shadow-sm flex items-center space-x-1 pointer-events-auto">
           <button
-            onClick={() => setIsAutoRotating(!isAutoRotating)}
-            className={`p-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1 ${
-              isAutoRotating ? 'bg-[#A58A63] text-white' : 'text-[#252522]/70 hover:bg-[#ECE8E1]'
-            }`}
-            title="Toggle 360 Turntable Rotation"
+            onClick={() => applyLighting(lightingPreset === 'showroom' ? 'daylight' : 'showroom')}
+            className="p-1 rounded-lg text-[#252522]/70 hover:bg-[#ECE8E1] transition cursor-pointer"
+            title="Toggle Studio Lighting"
           >
-            <RotateCcw className={`w-3.5 h-3.5 ${isAutoRotating ? 'animate-spin' : ''}`} />
+            {lightingPreset === 'showroom' ? (
+              <Sparkles className="w-3.5 h-3.5 text-[#C8A86B]" />
+            ) : (
+              <Sun className="w-3.5 h-3.5 text-amber-500" />
+            )}
           </button>
-
-          {/* Wireframe / CAD Mode Toggle */}
           <button
             onClick={() => setIsWireframe(!isWireframe)}
-            className={`p-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1 ${
-              isWireframe ? 'bg-[#252522] text-white' : 'text-[#252522]/70 hover:bg-[#ECE8E1]'
+            className={`p-1 rounded-lg transition cursor-pointer ${
+              isWireframe ? 'bg-[#1C1D1F] text-white' : 'text-[#252522]/70 hover:bg-[#ECE8E1]'
             }`}
-            title="Toggle Engineering CAD Wireframe"
+            title="Wireframe CAD Mode"
           >
             <Layers className="w-3.5 h-3.5" />
           </button>
-
-          {/* Reset Camera Button */}
-          <button
-            onClick={() => applyCameraPreset('three_quarter')}
-            className="p-1.5 rounded-lg text-[#252522]/70 hover:bg-[#ECE8E1] transition"
-            title="Reset Camera View"
-          >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
         </div>
-      </div>
-
-      {/* Interaction tip */}
-      <div className="absolute top-16 left-4 pointer-events-none opacity-60 hover:opacity-100 transition hidden sm:block">
-        <p className="text-[11px] text-[#252522] bg-[#FFFEFC]/80 px-2.5 py-1 rounded-md backdrop-blur-sm border border-[#DDD8CF]">
-          Click + Drag to Orbit • Scroll to Zoom • Right-click to Pan
-        </p>
       </div>
     </div>
   );

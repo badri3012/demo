@@ -261,7 +261,7 @@ export function App() {
       <section
         id="configurator"
         ref={configuratorRef}
-        className="py-12 px-6 max-w-7xl mx-auto w-full scroll-mt-20"
+        className="py-10 sm:py-12 px-4 sm:px-6 max-w-7xl mx-auto w-full scroll-mt-20 pb-24 lg:pb-12"
       >
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -279,7 +279,7 @@ export function App() {
           <div className="flex items-center space-x-2">
             <button
               onClick={handleResetConfig}
-              className="px-3 py-1.5 rounded-lg border border-[#DDD8CF] bg-white hover:bg-[#F7F5F0] text-xs font-semibold text-[#252522] transition flex items-center space-x-1.5"
+              className="px-3 py-1.5 rounded-lg border border-[#DDD8CF] bg-white hover:bg-[#F7F5F0] text-xs font-semibold text-[#252522] transition flex items-center space-x-1.5 cursor-pointer"
               title="Reset Cot Options"
             >
               <RotateCcw className="w-3.5 h-3.5 text-[#252522]/60" />
@@ -287,7 +287,7 @@ export function App() {
             </button>
             <button
               onClick={() => setShowQuotationModal(true)}
-              className="px-4 py-1.5 rounded-lg bg-[#252522] hover:bg-[#A58A63] text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm"
+              className="px-4 py-1.5 rounded-lg bg-[#252522] hover:bg-[#A58A63] text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5 text-[#A58A63]" />
               <span>Formal Quote Sheet</span>
@@ -295,18 +295,18 @@ export function App() {
           </div>
         </div>
 
-        {/* 60 / 40 Configurator Layout */}
+        {/* 60 / 40 Configurator Layout: Mobile Responsive Flow */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column (Approx 60%): Interactive Three.js 3D Viewport */}
-          <div className="lg:col-span-7 h-[500px] sm:h-[600px] lg:h-[720px] rounded-2xl sticky top-24">
+          {/* Left Column: Interactive Three.js 3D Viewport (Framed properly on mobile, sticky on desktop) */}
+          <div className="lg:col-span-7 h-[340px] sm:h-[420px] lg:h-[720px] rounded-2xl lg:sticky lg:top-24">
             <FurnitureViewer3D
               config={config}
               onToggleDrawers={() => handleConfigChange({ drawersOpen: !config.drawersOpen })}
             />
           </div>
 
-          {/* Right Column (Approx 40%): Progressive Step Configurator Panel */}
-          <div className="lg:col-span-5 h-[500px] sm:h-[600px] lg:h-[720px]">
+          {/* Right Column: Progressive Step Configurator Panel */}
+          <div className="lg:col-span-5 lg:h-[720px]">
             <ConfiguratorPanel
               config={config}
               onChange={handleConfigChange}
@@ -378,6 +378,26 @@ export function App() {
         onClose={() => setShowERPWorkflow(false)}
         config={config}
       />
+
+      {/* MOBILE COMPACT FLOATING PRICE BAR (Fixed to viewport bottom, hidden on lg screens) */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-[#1C1D1F]/95 backdrop-blur-md border-t border-white/10 px-4 py-2.5 shadow-2xl flex items-center justify-between pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+        <div>
+          <span className="text-[9px] uppercase tracking-wider text-white/50 block font-semibold leading-none mb-1">
+            Indicative MRP (Incl. 18% GST)
+          </span>
+          <span className="text-lg font-serif font-bold text-white tracking-tight leading-none">
+            {formatINR(pricing.totalMRP)}
+          </span>
+        </div>
+
+        <button
+          onClick={() => setShowQuotationModal(true)}
+          className="px-4 py-2 rounded-xl bg-[#C8A86B] hover:bg-[#D4AF37] text-[#1C1D1F] text-xs font-bold transition shadow-sm cursor-pointer flex items-center space-x-1.5 active:scale-95"
+        >
+          <span>Formal Quote</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       {/* BRAND FOOTER */}
       <Footer onReplayIntro={() => setShowIntro(true)} />

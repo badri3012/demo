@@ -66,7 +66,8 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-[#252522]/50 hover:text-[#252522] rounded-lg transition"
+              aria-label="Close Quotation Sheet"
+              className="p-1.5 text-[#252522]/50 hover:text-[#252522] rounded-lg transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
